@@ -63,16 +63,30 @@ def load_and_prepare(
     channels: Iterable[str],
     timestamp_col: Optional[str],
     sampling_hz: int,
+    row_offset: int = 0,
     max_rows: Optional[int] = None,
 ) -> pd.DataFrame:
-    df = pd.read_csv(input_csv)
-    if max_rows is not None and max_rows > 0:
-        df = df.head(max_rows)
+    if row_offset < 0:
+        raise ValueError("row_offset 0 veya daha buyuk olmalidir.")
 
-    ts_col = _select_timestamp_column(df, timestamp_col)
-    missing = [col for col in channels if col not in df.columns]
+    header_df = pd.read_csv(input_csv, nrows=0)
+    ts_col = _select_timestamp_column(header_df, timestamp_col)
+
+    channels = list(channels)
+    missing = [col for col in channels if col not in header_df.columns]
     if missing:
         raise ValueError(f"Missing channels in input data: {missing}")
+
+    usecols = [ts_col, *channels]
+    skiprows = range(1, row_offset + 1) if row_offset > 0 else None
+    nrows = max_rows if max_rows is not None and max_rows > 0 else None
+
+    df = pd.read_csv(
+        input_csv,
+        usecols=usecols,
+        skiprows=skiprows,
+        nrows=nrows,
+    )
 
     work = df[[ts_col, *channels]].copy()
     work[ts_col] = pd.to_datetime(work[ts_col], errors="coerce", utc=True)
@@ -244,10 +258,21 @@ def to_jsonl_records(simulated: pd.DataFrame, channels: List[str]) -> List[dict]
         
         is_radiation_event = bool(row["is_radiation_event"])
         
+        labels = {
+            "is_radiation_event": is_radiation_event,
+            "event_type": str(row["event_type"]),
+            "severity": str(row["severity"]),
+        }
+
         # Base record
         rec = {
             "timestamp": pd.Timestamp(ts).isoformat(),
             "radiation_level": float(row["radiation_level"]),
+            "channels": {
+                "clean": clean_vals,
+                "noisy": noisy_vals,
+            },
+            "labels": labels,
         }
         
         # Tüm kanal değerleri (kirlenmiş)
@@ -282,6 +307,12 @@ def write_jsonl(records: List[dict], output_path: Path) -> None:
     with output_path.open("w", encoding="utf-8") as f:
         for rec in records:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+
+def write_json(records: List[dict], output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(records, f, ensure_ascii=False)
 
 
 def compute_summary(simulated: pd.DataFrame) -> dict:

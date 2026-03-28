@@ -15,6 +15,7 @@ from simulation.radiation_simulator import (
     load_and_prepare,
     simulate_dynamic_radiation,
     to_jsonl_records,
+    write_json,
     write_jsonl,
 )
 
@@ -37,7 +38,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-event-duration", type=int, default=1)
     parser.add_argument("--max-event-duration", type=int, default=4)
     parser.add_argument("--cooldown-sec", type=int, default=20)
+    parser.add_argument("--row-offset", type=int, default=0)
     parser.add_argument("--max-rows", type=int, default=None)
+    parser.add_argument(
+        "--output-format",
+        choices=["jsonl", "json"],
+        default="jsonl",
+        help="Cikti dosya bicimi",
+    )
     return parser.parse_args()
 
 
@@ -61,6 +69,7 @@ def main() -> None:
         channels=channels,
         timestamp_col=args.timestamp_col,
         sampling_hz=cfg.sampling_hz,
+        row_offset=args.row_offset,
         max_rows=args.max_rows,
     )
 
@@ -71,7 +80,10 @@ def main() -> None:
     )
     records = to_jsonl_records(simulated, channels=channels)
     output_path = Path(args.output_jsonl)
-    write_jsonl(records, output_path)
+    if args.output_format == "json":
+        write_json(records, output_path)
+    else:
+        write_jsonl(records, output_path)
 
     summary = compute_summary(simulated)
     print("Simulasyon tamamlandi.")
