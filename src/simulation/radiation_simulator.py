@@ -267,7 +267,6 @@ def to_jsonl_records(simulated: pd.DataFrame, channels: List[str]) -> List[dict]
         # Base record
         rec = {
             "timestamp": pd.Timestamp(ts).isoformat(),
-            "radiation_level": float(row["radiation_level"]),
             "channels": {
                 "clean": clean_vals,
                 "noisy": noisy_vals,
@@ -289,7 +288,6 @@ def to_jsonl_records(simulated: pd.DataFrame, channels: List[str]) -> List[dict]
                 "event_id": str(row.get("event_id", "")),
                 "event_type": str(row["event_type"]),
                 "severity": str(row["severity"]),
-                "radiation_level": float(row["radiation_level"]),
                 "affected_channels": affected,
             }
             

@@ -10,6 +10,30 @@ from typing import Iterable, List
 import pandas as pd
 
 
+TARGET_CHANNELS = [
+    "channel_41",
+    "channel_42",
+    "channel_43",
+    "channel_44",
+    "channel_45",
+    "channel_46",
+    "channel_14",
+    "channel_21",
+    "channel_29",
+    "channel_48",
+    "channel_47",
+    "channel_49",
+    "channel_52",
+    "channel_51",
+    "channel_50",
+    "channel_22",
+    "channel_31",
+    "channel_39",
+    "channel_15",
+    "channel_23",
+]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="ESA Mission kanal pickle dosyalarini tek flat CSV dosyasina cevirir."
@@ -21,8 +45,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--channels",
-        required=True,
-        help="Virgulle ayrilmis kanal listesi. Ornek: channel_12,channel_13,channel_70,channel_71",
+        default=None,
+        help=(
+            "Opsiyonel virgulle ayrilmis kanal listesi. "
+            "Verilmezse optimize edilmis sabit kanal listesi kullanilir."
+        ),
     )
     parser.add_argument(
         "--output-csv",
@@ -61,6 +88,26 @@ def _parse_channels(channels_arg: str) -> List[str]:
     return channels
 
 
+def resolve_channels(channels_arg: str | None) -> List[str]:
+    if not channels_arg:
+        return TARGET_CHANNELS.copy()
+
+    requested = _parse_channels(channels_arg)
+    allowed = set(TARGET_CHANNELS)
+    invalid = [c for c in requested if c not in allowed]
+    if invalid:
+        raise ValueError(
+            "Bu donusturucu yalnizca hedef kanal listesiyle calisir. "
+            f"Gecersiz kanallar: {invalid}"
+        )
+
+    requested_set = set(requested)
+    selected = [c for c in TARGET_CHANNELS if c in requested_set]
+    if len(selected) < 3:
+        raise ValueError("En az 3 gecerli hedef kanal verin.")
+    return selected
+
+
 def _read_channel_df(mission_root: Path, channel_name: str) -> pd.DataFrame:
     channel_file = mission_root / "channels" / channel_name / channel_name
     if not channel_file.exists():
@@ -95,7 +142,7 @@ def main() -> None:
     if not mission_root.exists():
         raise FileNotFoundError(f"Mission root bulunamadi: {mission_root}")
 
-    channels = _parse_channels(args.channels)
+    channels = resolve_channels(args.channels)
     channel_dfs = [_read_channel_df(mission_root, channel) for channel in channels]
     merged = _merge_channels(channel_dfs, join_type=args.join)
 

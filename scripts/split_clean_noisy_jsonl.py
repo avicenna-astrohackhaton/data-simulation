@@ -6,6 +6,30 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
 
 
+TARGET_CHANNELS = [
+    "channel_41",
+    "channel_42",
+    "channel_43",
+    "channel_44",
+    "channel_45",
+    "channel_46",
+    "channel_14",
+    "channel_21",
+    "channel_29",
+    "channel_48",
+    "channel_47",
+    "channel_49",
+    "channel_52",
+    "channel_51",
+    "channel_50",
+    "channel_22",
+    "channel_31",
+    "channel_39",
+    "channel_15",
+    "channel_23",
+]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Tek JSONL girdisinden temiz ve kirli JSONL dosyalari uretir."
@@ -15,17 +39,33 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-clean-jsonl", required=True)
     parser.add_argument(
         "--channels",
-        required=True,
-        help="Virgulle ayrilmis kanal listesi. Ornek: channel_1,channel_9,channel_12",
+        default=None,
+        help=(
+            "Opsiyonel virgulle ayrilmis kanal listesi. "
+            "Verilmezse optimize edilmis sabit kanal listesi kullanilir."
+        ),
     )
     return parser.parse_args()
 
 
-def parse_channels(channels_arg: str) -> List[str]:
+def parse_channels(channels_arg: str | None) -> List[str]:
+    if not channels_arg:
+        return TARGET_CHANNELS.copy()
+
     channels = [c.strip() for c in channels_arg.split(",") if c.strip()]
     if len(channels) < 1:
         raise ValueError("En az 1 kanal vermen gerekiyor.")
-    return channels
+
+    allowed = set(TARGET_CHANNELS)
+    invalid = [c for c in channels if c not in allowed]
+    if invalid:
+        raise ValueError(
+            "Bu ayristirma adimi yalnizca hedef kanal listesiyle calisir. "
+            f"Gecersiz kanallar: {invalid}"
+        )
+
+    channels_set = set(channels)
+    return [c for c in TARGET_CHANNELS if c in channels_set]
 
 
 def load_jsonl(path: Path) -> Iterable[Dict[str, Any]]:
@@ -56,7 +96,7 @@ def extract_record_pair(
 
     if not noisy_data:
         for k, v in record.items():
-            if k in {"timestamp", "radiation_level", "labels", "channels", "radiation_event"}:
+            if k in {"timestamp", "labels", "channels", "radiation_event"}:
                 continue
             if k.endswith("_original"):
                 continue

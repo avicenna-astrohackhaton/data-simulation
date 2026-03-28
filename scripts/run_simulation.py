@@ -20,6 +20,30 @@ from simulation.radiation_simulator import (
 )
 
 
+TARGET_CHANNELS = [
+    "channel_41",
+    "channel_42",
+    "channel_43",
+    "channel_44",
+    "channel_45",
+    "channel_46",
+    "channel_14",
+    "channel_21",
+    "channel_29",
+    "channel_48",
+    "channel_47",
+    "channel_49",
+    "channel_52",
+    "channel_51",
+    "channel_50",
+    "channel_22",
+    "channel_31",
+    "channel_39",
+    "channel_15",
+    "channel_23",
+]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Kaggle telemetri verisinde dinamik radyasyon event simülasyonu üretir."
@@ -29,8 +53,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timestamp-col", default=None)
     parser.add_argument(
         "--channels",
-        required=True,
-        help="Virgulle ayrilmis kanal listesi. Ornek: battery_voltage,temperature,roll,yaw",
+        default=None,
+        help=(
+            "Opsiyonel virgulle ayrilmis kanal listesi. "
+            "Verilmezse optimize edilmis sabit kanal listesi kullanilir."
+        ),
     )
     parser.add_argument("--sampling-hz", type=int, default=1)
     parser.add_argument("--seed", type=int, default=42)
@@ -49,11 +76,29 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def resolve_channels(channels_arg: str | None) -> list[str]:
+    if not channels_arg:
+        return TARGET_CHANNELS.copy()
+
+    requested = [c.strip() for c in channels_arg.split(",") if c.strip()]
+    allowed = set(TARGET_CHANNELS)
+    invalid = [c for c in requested if c not in allowed]
+    if invalid:
+        raise ValueError(
+            "Bu pipeline yalnizca hedef kanal listesiyle calisir. "
+            f"Gecersiz kanallar: {invalid}"
+        )
+
+    requested_set = set(requested)
+    selected = [c for c in TARGET_CHANNELS if c in requested_set]
+    if len(selected) < 3:
+        raise ValueError("En az 3 gecerli hedef kanal verin.")
+    return selected
+
+
 def main() -> None:
     args = parse_args()
-    channels = [c.strip() for c in args.channels.split(",") if c.strip()]
-    if len(channels) < 3:
-        raise ValueError("En az 3 kanal verin.")
+    channels = resolve_channels(args.channels)
 
     cfg = SimulationConfig(
         sampling_hz=args.sampling_hz,

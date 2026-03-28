@@ -50,9 +50,15 @@ Isterseniz parametre verebilirsiniz:
 
 ```powershell
 .\run.ps1 -MissionRoot "data/raw/ESA-Mission2/ESA-Mission2" -Channels "channel_2,channel_19,channel_98,channel_99" -FlatCsv "data/processed/mission2_flat.csv" -OutputJsonl "output/mission2_simulated.jsonl" -MaxRows 300000
+
+Not: Varsayilan optimize kanal seti su sekildedir:
+channel_41,channel_42,channel_43,channel_44,channel_45,channel_46,channel_14,channel_21,channel_29,channel_48,channel_47,channel_49,channel_52,channel_51,channel_50,channel_22,channel_31,channel_39,channel_15,channel_23
 ```
 
 ## Calistirma
+
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\run.ps1 -MaxRows 1000 -FlatCsv "data/processed/mission1_1000.csv"
 
 ```bash
 $env:PYTHONPATH="src"
@@ -70,7 +76,7 @@ ESA-Mission verisi dogrudan tek CSV olmadigi icin once converter calistirin:
 ```bash
 python scripts/convert_esa_to_flat_csv.py \
   --mission-root "data/raw/ESA-Mission1/ESA-Mission1" \
-  --channels "channel_12,channel_13,channel_70,channel_71" \
+  --channels "channel_41,channel_42,channel_43,channel_44,channel_45,channel_46,channel_14,channel_21,channel_29,channel_48,channel_47,channel_49,channel_52,channel_51,channel_50,channel_22,channel_31,channel_39,channel_15,channel_23" \
   --output-csv "data/processed/mission1_flat.csv" \
   --join "outer" \
   --max-rows 300000
@@ -82,7 +88,7 @@ Sonra simulasyonu uretin:
 $env:PYTHONPATH="src"
 python scripts/run_simulation.py \
   --input-csv "data/processed/mission1_flat.csv" \
-  --channels "channel_12,channel_13,channel_70,channel_71" \
+  --channels "channel_41,channel_42,channel_43,channel_44,channel_45,channel_46,channel_14,channel_21,channel_29,channel_48,channel_47,channel_49,channel_52,channel_51,channel_50,channel_22,channel_31,channel_39,channel_15,channel_23" \
   --timestamp-col "timestamp" \
   --output-jsonl "output/simulated_telemetry.jsonl"
 ```

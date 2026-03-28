@@ -1,8 +1,10 @@
 param(
     [string]$MissionRoot = "data/raw/ESA-Mission1/ESA-Mission1",
-    [string]$Channels = "channel_12,channel_13,channel_70,channel_71",
+    [string]$Channels = "channel_41,channel_42,channel_43,channel_44,channel_45,channel_46,channel_14,channel_21,channel_29,channel_48,channel_47,channel_49,channel_52,channel_51,channel_50,channel_22,channel_31,channel_39,channel_15,channel_23",
     [string]$FlatCsv = "data/processed/mission1_flat.csv",
     [string]$OutputJsonl = "output/simulated_telemetry.jsonl",
+    [string]$OutputNoisyJsonl = "output/corrupted_noisy.jsonl",
+    [string]$OutputCleanJsonl = "output/original_clean.jsonl",
     [int]$MaxRows = 300000,
     [ValidateSet("outer", "inner")]
     [string]$Join = "outer"
@@ -14,7 +16,8 @@ $venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
 
 if (Test-Path $venvPython) {
     $pythonExe = $venvPython
-} else {
+}
+else {
     $pythonExe = "python"
 }
 
@@ -34,7 +37,7 @@ try {
 
     $env:PYTHONPATH = Join-Path $repoRoot "src"
 
-    Write-Host "[2/2] Radyasyon simulasyonu basliyor..."
+    Write-Host "[2/3] Radyasyon simulasyonu basliyor..."
     & $pythonExe "scripts/run_simulation.py" `
         --input-csv $FlatCsv `
         --channels $Channels `
@@ -45,7 +48,21 @@ try {
         throw "Simulasyon adimi basarisiz oldu."
     }
 
-    Write-Host "Tamamlandi. Cikti dosyasi: $OutputJsonl"
+    Write-Host "[3/3] Cikti istenen JSONL formatina donusturuluyor..."
+    & $pythonExe "scripts/split_clean_noisy_jsonl.py" `
+        --input-jsonl $OutputJsonl `
+        --output-noisy-jsonl $OutputNoisyJsonl `
+        --output-clean-jsonl $OutputCleanJsonl `
+        --channels $Channels
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "JSONL ayristirma adimi basarisiz oldu."
+    }
+
+    Write-Host "Tamamlandi."
+    Write-Host "Ara cikti: $OutputJsonl"
+    Write-Host "Kirli final cikti: $OutputNoisyJsonl"
+    Write-Host "Temiz final cikti: $OutputCleanJsonl"
 }
 finally {
     Pop-Location
