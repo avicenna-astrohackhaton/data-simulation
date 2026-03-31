@@ -16,7 +16,7 @@ import pandas as pd
 class SimulationConfig:
     sampling_hz: int = 1
     seed: int = 42
-    event_coverage: float = 0.02
+    event_coverage: float = 0.7
     min_event_duration_sec: int = 1
     max_event_duration_sec: int = 4
     event_cooldown_sec: int = 20
